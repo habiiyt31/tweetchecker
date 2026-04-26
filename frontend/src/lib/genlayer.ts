@@ -1,21 +1,17 @@
 /**
  * GenLayer client wrapper.
  *
- * Uses genlayer-js v1.1.7+ API:
- *   - Two-client pattern: read client (no wallet) + write client (with provider)
- *   - provider: window.ethereum for MetaMask signing
- *   - client.connect() to auto-switch MetaMask to the right network
+ * Uses genlayer-js v1.1.7+ API.
  */
 
-import { createClient, type GenLayerClient } from "genlayer-js";
-import {
-  studionet,
-  localnet,
-  testnetAsimov,
-} from "genlayer-js/chains";
+import { createClient } from "genlayer-js";
+import { studionet, localnet, testnetAsimov } from "genlayer-js/chains";
 import { TransactionStatus } from "genlayer-js/types";
 
 import type { AnalysisResult } from "@/types";
+
+// Derive the client type from createClient itself -- works on any version.
+type Client = ReturnType<typeof createClient>;
 
 const CHAIN_NAME = (process.env.NEXT_PUBLIC_GENLAYER_CHAIN ?? "studionet") as
   | "studionet"
@@ -33,12 +29,12 @@ export const CONTRACT_ADDRESS =
 export const RPC_URL = process.env.NEXT_PUBLIC_GENLAYER_RPC_URL;
 
 /* ------------------------------------------------------------------ */
-/* Read client — no wallet needed                                     */
+/* Read client                                                        */
 /* ------------------------------------------------------------------ */
 
-let _readClient: GenLayerClient<any> | null = null;
+let _readClient: Client | null = null;
 
-export function getReadClient(): GenLayerClient<any> {
+export function getReadClient(): Client {
   if (_readClient) return _readClient;
   _readClient = createClient({
     chain,
@@ -48,10 +44,10 @@ export function getReadClient(): GenLayerClient<any> {
 }
 
 /* ------------------------------------------------------------------ */
-/* Write client — bound to MetaMask via window.ethereum               */
+/* Write client (MetaMask-bound)                                      */
 /* ------------------------------------------------------------------ */
 
-export function getWriteClient(address: `0x${string}`): GenLayerClient<any> {
+export function getWriteClient(address: `0x${string}`): Client {
   const provider =
     typeof window !== "undefined" ? (window as any).ethereum : undefined;
 
@@ -59,8 +55,8 @@ export function getWriteClient(address: `0x${string}`): GenLayerClient<any> {
     chain,
     endpoint: RPC_URL,
     account: address,
-    provider, // genlayer-js routes signing through this provider (MetaMask)
-  });
+    ...(provider ? { provider } : {}),
+  } as any);
 }
 
 /* ------------------------------------------------------------------ */
@@ -105,7 +101,7 @@ export async function readAllVerdicts(): Promise<Record<string, AnalysisResult>>
 }
 
 /* ------------------------------------------------------------------ */
-/* Write — submit a new analysis                                      */
+/* Write                                                              */
 /* ------------------------------------------------------------------ */
 
 export async function submitAnalysis(
@@ -115,15 +111,14 @@ export async function submitAnalysis(
 ): Promise<`0x${string}`> {
   const client = getWriteClient(address);
 
-  // Make sure the wallet is on the correct GenLayer chain.
-  // This will prompt the user to add or switch to it if needed.
   try {
-    await client.connect(CHAIN_KEY);
+    if (typeof (client as any).connect === "function") {
+      await (client as any).connect(CHAIN_KEY);
+    }
   } catch (err) {
     console.warn("client.connect() failed (continuing anyway):", err);
   }
 
-  // Initialize consensus before write -- per docs.
   await client.initializeConsensusSmartContract();
 
   const txHash = await client.writeContract({
@@ -141,8 +136,11 @@ export async function waitForVerdict(
   address: `0x${string}`,
 ) {
   const client = getWriteClient(address);
+  // Cast to `any` because genlayer-js v1.1.7's Hash type enforces
+  // exact-length 66 chars at compile time, conflicting with viem's
+  // generic `0x${string}` template literal type.
   return client.waitForTransactionReceipt({
-    hash: txHash,
+    hash: txHash as any,
     status: TransactionStatus.FINALIZED,
     retries: 100,
     interval: 5000,
