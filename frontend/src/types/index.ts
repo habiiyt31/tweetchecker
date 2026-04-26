@@ -1,51 +1,44 @@
-export type Verdict = "LEGIT" | "SUSPICIOUS" | "SCAM";
-export type SignalLevel = "red" | "yellow" | "green";
-export type SignalKey =
-  | "account_age"
-  | "follower_ratio"
-  | "recent_tweets"
-  | "engagement_spike"
-  | "content";
+/**
+ * Shared TypeScript types for TweetChecker.
+ *
+ * Field names match the JSON output from the Intelligent Contract.
+ */
+
+// ----- Twitter API payload (server -> contract input) -------------
+
+export interface TwitterApiPayload {
+  profile: any;
+  tweet: any;
+  recent_tweets: any[];
+}
+
+// ----- Contract output (verdict that comes back from chain) -------
+
+export type Verdict = "SCAM" | "SUSPICIOUS" | "LEGIT";
+export type SignalColor = "red" | "yellow" | "green";
 
 export interface AnalysisResult {
   verdict: Verdict;
   score: number;
   summary: string;
-  explanation: Record<SignalKey, string>;
-  signals: Record<SignalKey, SignalLevel>;
+  explanation: {
+    account_age: string;
+    follower_ratio: string;
+    engagement_ratios: string;
+    historical_context: string;
+    content: string;
+  };
+  signals: {
+    account: SignalColor;
+    followers: SignalColor;
+    engagement: SignalColor;
+    history: SignalColor;
+    content: SignalColor;
+  };
   red_flags: string[];
 }
 
-export interface TwitterProfile {
-  userName?: string;
-  name?: string;
-  description?: string;
-  location?: string;
-  url?: string;
-  followers?: number;
-  following?: number;
-  createdAt?: string;
-  isBlueVerified?: boolean;
-  isAutomated?: boolean;
-  profilePicture?: string;
-}
-
-export interface TwitterTweet {
-  id?: string;
-  text?: string;
-  createdAt?: string;
-  viewCount?: number;
-  likeCount?: number;
-  retweetCount?: number;
-  replyCount?: number;
-  url?: string;
-}
-
-export interface TwitterApiPayload {
-  profile: TwitterProfile;
-  tweet: TwitterTweet;
-  recent_tweets: TwitterTweet[];
-}
+// ----- Wallet state -----------------------------------------------
 
 export interface WalletState {
   address: `0x${string}` | null;
