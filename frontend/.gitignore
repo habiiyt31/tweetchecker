@@ -1,0 +1,21 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+*.pem
+.idea
+.vscode
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# CRITICAL: never commit your real .env -- it contains secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+*.tsbuildinfo
+next-env.d.ts
