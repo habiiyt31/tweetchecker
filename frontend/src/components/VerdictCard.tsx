@@ -16,7 +16,7 @@ const VERDICT_STYLES: Record<
     bg: "bg-emerald-500/10",
     ring: "ring-emerald-500/40",
     label: "LEGIT",
-    emoji: "✓",
+    emoji: "OK",
     text: "text-emerald-400",
   },
   SUSPICIOUS: {
@@ -30,7 +30,7 @@ const VERDICT_STYLES: Record<
     bg: "bg-rose-500/10",
     ring: "ring-rose-500/40",
     label: "SCAM",
-    emoji: "✗",
+    emoji: "X",
     text: "text-rose-400",
   },
 };
@@ -41,20 +41,18 @@ const SIGNAL_DOT: Record<SignalColor, string> = {
   red: "bg-rose-400",
 };
 
-// New signal labels matching the contract output
+// 4 signals (removed historical_context per simpler detection logic)
 const SIGNAL_LABELS: Record<keyof AnalysisResult["signals"], string> = {
   account: "Account credibility",
   followers: "Follower quality",
   engagement: "Engagement ratios",
-  history: "Historical context",
   content: "Content red flags",
 };
 
 const EXPLANATION_LABELS: Record<keyof AnalysisResult["explanation"], string> = {
   account_age: "Account age & verification",
   follower_ratio: "Followers vs following",
-  engagement_ratios: "Engagement ratios (likes / RTs / replies)",
-  historical_context: "How this tweet compares to history",
+  engagement_ratios: "Engagement ratios (likes / RTs / replies / views)",
   content: "Tweet content analysis",
 };
 
@@ -70,7 +68,7 @@ export function VerdictCard({ result, cached, txHash }: Props) {
         <div>
           <div className="flex items-center gap-3">
             <span
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${style.bg} ${style.text} text-xl font-bold ring-1 ${style.ring}`}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-full ${style.bg} ${style.text} text-sm font-bold ring-1 ${style.ring}`}
             >
               {style.emoji}
             </span>
@@ -97,8 +95,8 @@ export function VerdictCard({ result, cached, txHash }: Props) {
         </div>
       </div>
 
-      {/* SIGNALS -------------------------------------------------------- */}
-      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {/* SIGNALS -- 4 cards now, fits 2x2 on mobile, 4-col on desktop --- */}
+      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {(Object.keys(SIGNAL_LABELS) as Array<keyof typeof SIGNAL_LABELS>).map(
           (key) => {
             const color = result.signals?.[key] ?? "yellow";
@@ -155,7 +153,7 @@ export function VerdictCard({ result, cached, txHash }: Props) {
                 key={i}
                 className="flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-sm text-rose-200"
               >
-                <span className="mt-0.5 text-rose-400">→</span>
+                <span className="mt-0.5 text-rose-400">-</span>
                 <span>{flag}</span>
               </li>
             ))}

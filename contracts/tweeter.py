@@ -7,11 +7,11 @@ class TweetChecker(gl.Contract):
     """
     Tweet Authenticity Checker -- Intelligent Contract on GenLayer.
 
-    Pragmatic detection rules:
-    - Verified Business accounts are presumed LEGIT (only flagged if hard
-      scam content like send-to-receive)
-    - Other accounts: balanced engagement + content + behavioral analysis
-    - Hard scams (giveaway, send-X-get-Y, impersonation) always SCAM
+    Implementation based on community feedback:
+    - Compares engagement metrics WITHIN a single tweet (no history needed)
+    - Burak's rules: likes > 70% of views = sus, RT > likes = sus
+    - Account-aware: verified business gets LEGIT bias
+    - Hard scams (send-to-receive, phishing) always SCAM
     """
 
     results: TreeMap[str, str]
@@ -28,12 +28,12 @@ You are a Twitter/X scam detector. Be PRACTICAL, not paranoid.
 
 Most tweets are not scams. Your job is to catch ACTUAL scams (phishing,
 send-to-receive, impersonation, giveaway-bait), not penalize legitimate
-projects for having promotional content or imperfect engagement ratios.
+projects for promotional content or imperfect engagement ratios.
 
 ===================================
 TWEET URL: {tweet_url}
 ===================================
-DATA (from twitterapi.io):
+DATA (from twitterapi.io -- profile + this specific tweet only):
 {api_data}
 ===================================
 
@@ -60,61 +60,83 @@ STEP 2: CATEGORIZE THE ACCOUNT
 - "SMALL" = followers < 1,000
 - "NEW" = account < 30 days old (overrides above)
 
-VERIFIED_BUSINESS accounts are presumed legitimate companies that paid
-for and went through verification. They get a strong LEGIT bias unless
-they post hard scam content.
+VERIFIED_BUSINESS accounts are presumed legitimate. They get strong LEGIT
+bias unless they post hard scam content.
 
-STEP 3: CALCULATE ENGAGEMENT RATIOS
+STEP 3: ENGAGEMENT RATIO ANALYSIS (WITHIN THIS TWEET)
 
-  like_rate     = (likeCount / viewCount) * 100
-  retweet_rate  = (retweetCount / viewCount) * 100
-  reply_rate    = (replyCount / viewCount) * 100
-  rt_to_like    = retweetCount / max(likeCount, 1)
+Calculate from the tweet's own metrics:
+  like_rate    = (likeCount / viewCount) * 100
+  rt_rate      = (retweetCount / viewCount) * 100
+  reply_rate   = (replyCount / viewCount) * 100
+  rt_to_like   = retweetCount / max(likeCount, 1)
 
-Show these calculated values in the output.
+CORE DETECTION RULES (apply universally, regardless of account size):
+
+RULE 1: rt_to_like > 1.0 = SUSPICIOUS
+   Reason: bots farm retweets, real humans like more than they RT.
+   If rt_to_like > 1.5 -> very strong red flag.
+
+RULE 2: like_rate > 50% = SUSPICIOUS
+   Reason: impossible to get organic likes from 50%+ of viewers.
+   Indicates injected/purchased likes.
+
+RULE 3: like_rate > 70% = SCAM-level
+   Reason: clearly fake engagement injection.
+
+RULE 4: views > 10,000 AND reply_rate < 0.005% = SUSPICIOUS
+   Reason: paid views from view farms have no real discussion.
+   Real virals get replies.
+
+RULE 5: rt_rate > 10% = SUSPICIOUS
+   Reason: RT farm activity (bots that mass-retweet).
+
+Show the calculated ratios in the output explicitly.
 
 STEP 4: APPLY PENALTIES (start at 100)
 
 VERIFIED_BUSINESS account rules:
-- Only penalize for: rt_to_like > 2.0, like_rate > 30%, hard scam content
-- DO NOT penalize for: low engagement, promotional feed, follower count vs views ratio
+- Only penalize for: rt_to_like > 2.0, like_rate > 50%, hard scam content
+- DO NOT penalize for: low engagement, promotional feed
 - Default expected score: 85-95 (LEGIT)
 
 VERIFIED account rules:
-- Penalize for: rt_to_like > 1.5 (-30), like_rate > 25% (-30)
-- Mild penalties for: all-promo feed (-5), small concerns
+- rt_to_like > 1.5: -30
+- like_rate > 50%: -35
 - Default expected score: 75-90
 
 ESTABLISHED account rules:
-- Penalize for: rt_to_like > 1.2 (-25), like_rate > 20% (-25)
-- All-promo feed: -10
+- rt_to_like > 1.0: -25
+- like_rate > 30%: -25
 - Following >> Followers (10x): -15
 - Default expected score: 65-85
 
 SMALL account rules:
-- Penalize for: rt_to_like > 1.0 (-20), like_rate > 15% (-20)
-- All-promo feed promoting crypto: -15
+- rt_to_like > 1.0: -20
+- like_rate > 25%: -20
 - Default expected score: 70-90
 
 NEW account (< 30 days):
 - Base penalty: -25
-- If promoting crypto/giveaway/finance: extra -25
+- If promoting crypto/giveaway: extra -25
 - Default expected score: 40-60
 
-UNIVERSAL HARD PENALTIES (apply to all categories):
-- Soft scam content (urgency manipulation, exaggerated claims): -15
+UNIVERSAL HARD PENALTIES (all categories):
+- like_rate > 70%: -45
+- views > 10K + reply_rate < 0.005%: -20
+- rt_rate > 10%: -25
+- Soft scam content (urgency, exaggerated claims): -15
 - Suspicious shortened links to unknown domains: -20
 - isAutomated = true: -30
 
-STEP 5: VERDICT THRESHOLDS (REVISED)
+STEP 5: VERDICT THRESHOLDS
 
 - Score >= 55 -> LEGIT
 - Score 30-54 -> SUSPICIOUS
 - Score < 30  -> SCAM
 
-These thresholds are intentionally LENIENT because false positives on
-real projects damage the tool's credibility more than missing borderline
-cases. When in doubt, lean LEGIT.
+Lean LEGIT when in doubt. False positives on real projects damage trust
+more than missing borderline cases.
 
 STEP 6: OUTPUT
 
@@ -126,15 +148,13 @@ Return ONLY this exact JSON -- no markdown, no code fences:
   "explanation": {{
     "account_age": "<details + category>",
     "follower_ratio": "<X followers, Y following, interpretation>",
-    "engagement_ratios": "<like_rate: X% | retweet_rate: Y% | rt_to_like: Z (healthy?)>",
-    "historical_context": "<this tweet vs account history>",
+    "engagement_ratios": "<like_rate: X% | rt_rate: Y% | reply_rate: Z% | rt_to_like: W (healthy or suspicious?)>",
     "content": "<scam signals or 'no scam patterns detected'>"
   }},
   "signals": {{
     "account": "red | yellow | green",
     "followers": "red | yellow | green",
     "engagement": "red | yellow | green",
-    "history": "red | yellow | green",
     "content": "red | yellow | green"
   }},
   "red_flags": ["<concrete flag>", "<another>"]
@@ -143,9 +163,9 @@ Return ONLY this exact JSON -- no markdown, no code fences:
 CRITICAL REMINDERS:
 - VERIFIED_BUSINESS accounts almost always get LEGIT unless content is scammy
 - Promotional content alone is NOT a scam signal
-- Low engagement-per-follower ratio is NOT a scam signal alone
-- Pay-to-play models, contests, giveaways from VERIFIED projects = LEGIT
+- Pay-to-play models, contests from VERIFIED projects = LEGIT
 - Real scams have CONCRETE patterns: phishing, send-to-receive, impersonation
+- Engagement RATIOS within the tweet are more reliable than absolute counts
 """
             response = gl.nondet.exec_prompt(prompt)
             response = response.strip()

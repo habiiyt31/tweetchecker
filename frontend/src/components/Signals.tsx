@@ -12,7 +12,7 @@ const SIGNALS: SignalCard[] = [
     num: "01",
     title: "Account credibility",
     description:
-      "How old is the account, is it verified, is the profile complete, is it marked as automated.",
+      "Account age, verification status, profile completeness, and the isAutomated flag.",
     examples: [
       "Account < 30 days old",
       "Marked as automated bot",
@@ -33,25 +33,15 @@ const SIGNALS: SignalCard[] = [
     num: "03",
     title: "Engagement ratios",
     description:
-      "We use RATIOS, not absolute counts. A viral tweet is normal -- bot-pattern engagement isn't.",
+      "We compare metrics WITHIN a single tweet. A viral tweet is normal -- bot-pattern engagement isn't.",
     examples: [
-      "Like rate > 10% (fake likes)",
-      "Retweets > Likes (bot farms)",
+      "Likes > 70% of views (impossible organic)",
+      "Retweets > Likes (RT bots)",
       "Replies < 0.05% (paid views)",
     ],
   },
   {
     num: "04",
-    title: "Historical context",
-    description:
-      "We compare this tweet's ratios vs the account's recent history. Higher views are fine -- wildly different ratios aren't.",
-    examples: [
-      "Sudden change in engagement pattern",
-      "Ratios that don't match account history",
-    ],
-  },
-  {
-    num: "05",
     title: "Content red flags",
     description:
       "We scan tweet text for known scam patterns and impersonation attempts.",
@@ -74,22 +64,21 @@ export function Signals() {
           kicker="Signals"
           title={
             <>
-              Five signals,{" "}
+              Four signals,{" "}
               <span className="font-instrument italic text-ink-mute">
-                weighted carefully
+                ratios that matter
               </span>
             </>
           }
         />
 
-        {/* Subtitle below the header (since SectionHeader doesn't have one) */}
         <p className="-mt-8 mb-16 max-w-2xl text-ink-mute md:-mt-16">
-          Inspired by community feedback. We don't penalize tweets just for going
-          viral. We look at the patterns that actually matter.
+          We compare engagement ratios within a single tweet. A viral hit isn't
+          suspicious. Likes greater than 70% of views, or retweets greater than
+          likes -- those are.
         </p>
 
-        {/* SIGNAL CARDS */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {SIGNALS.map((signal) => (
             <div
               key={signal.num}

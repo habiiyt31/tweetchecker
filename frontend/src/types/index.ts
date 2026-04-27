@@ -9,7 +9,6 @@
 export interface TwitterApiPayload {
   profile: any;
   tweet: any;
-  recent_tweets: any[];
 }
 
 // ----- Contract output (verdict that comes back from chain) -------
@@ -25,14 +24,12 @@ export interface AnalysisResult {
     account_age: string;
     follower_ratio: string;
     engagement_ratios: string;
-    historical_context: string;
     content: string;
   };
   signals: {
     account: SignalColor;
     followers: SignalColor;
     engagement: SignalColor;
-    history: SignalColor;
     content: SignalColor;
   };
   red_flags: string[];
