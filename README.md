@@ -13,7 +13,7 @@ tweetchecker/
 
 This project ships pre-configured with:
 
-- Contract address: `0x`
+- Contract address: `0xAddress`
 - Network: GenLayer Studio Network (`studionet`)
 - Twitter data source: `twitterapi.io` (proxied through Next.js API route — key never reaches the browser)
 
