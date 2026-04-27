@@ -33,7 +33,7 @@ const SIGNALS: SignalCard[] = [
     num: "03",
     title: "Engagement ratios",
     description:
-      "We compare metrics WITHIN a single tweet. A viral tweet is normal -- bot-pattern engagement isn't.",
+      "We compare metrics WITHIN a single tweet. A viral tweet is normal -- bot-pattern engagement is not.",
     examples: [
       "Likes > 70% of views (impossible organic)",
       "Retweets > Likes (RT bots)",
@@ -46,7 +46,7 @@ const SIGNALS: SignalCard[] = [
     description:
       "We scan tweet text for known scam patterns and impersonation attempts.",
     examples: [
-      "'Send X get 2X' scams",
+      "Send X get 2X scams",
       "Unrealistic returns / urgency",
       "Impersonation of known projects",
     ],
@@ -73,7 +73,7 @@ export function Signals() {
         />
 
         <p className="-mt-8 mb-16 max-w-2xl text-ink-mute md:-mt-16">
-          We compare engagement ratios within a single tweet. A viral hit isn't
+          We compare engagement ratios within a single tweet. A viral hit is not
           suspicious. Likes greater than 70% of views, or retweets greater than
           likes -- those are.
         </p>
